@@ -1,0 +1,24 @@
+# Flutter/Dart
+.dart_tool/
+.build/
+build/
+ios/
+android/
+linux/
+macos/
+windows/
+web/
+*.iml
+pubspec.lock
+
+# Node.js/Backend
+backend/node_modules/
+backend/.env
+backend/*.zip
+
+# General
+*.log
+*.zip
+.DS_Store
+.idea/
+.vscode/
