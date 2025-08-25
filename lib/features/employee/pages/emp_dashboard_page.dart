@@ -40,7 +40,7 @@ class _EmpDashboardPageState extends State<EmpDashboardPage> {
       if (zones.isNotEmpty) {
         final z = zones.first;
         if (z['id'] != null && z['id'] != 'null') {
-          _zoneId = z['_id'];
+          _zoneId = z['id'];
           final coords = (z['center']['coordinates'] as List); // [lng,lat]
           _zoneCenter = LatLng(
             (coords[1] as num).toDouble(),
@@ -49,8 +49,8 @@ class _EmpDashboardPageState extends State<EmpDashboardPage> {
           _zoneRadiusM = ((z['radiusMeters'] as num?)?.toDouble()) ?? 30.0;
         }
       }
-      if (shifts.isNotEmpty && shifts.first['_id'] != 'null') {
-        _shiftId = shifts.first['_id'];
+      if (shifts.isNotEmpty && shifts.first['id'] != 'null') {
+        _shiftId = shifts.first['id'];
       }
       // ...inside _init()...
       setState(() => _loading = false);
