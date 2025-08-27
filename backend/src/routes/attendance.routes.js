@@ -59,7 +59,7 @@ const checkOutZ = z.object({ lat: z.number(), lng: z.number() });
 r.post('/check-out', requireAuth, async (req, res) => {
   try {
     const { lat, lng } = checkOutZ.parse(req.body);
-    const open = await Attendance.findOne({ userId: req.userId, status: 'IN' }).sort({ createdAt: -1 });
+    const open = await Attendance.findOne({ status: 'IN' }).sort({ createdAt: -1 });
     if (!open) return res.status(400).json({ error: 'No open attendance' });
     open.status = 'OUT'; open.checkOutTime = new Date(); open.checkOutLoc = { lat, lng };
     await open.save();
