@@ -15,18 +15,84 @@ class _AdminHomePageState extends State<AdminHomePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin')),
-
+      backgroundColor: const Color(0xFFF7F8FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          'Admin',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+            color: Colors.blueAccent,
+            shadows: [
+              Shadow(
+                color: Colors.blueAccent.withOpacity(0.2),
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.blueAccent),
+            onSelected: (value) {
+              if (value == 'logout') {
+                Navigator.of(context).pushReplacementNamed('/login');
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'logout', child: Text('Logout')),
+            ],
+          ),
+        ],
+      ),
       body: Column(
         children: [
           const SizedBox(height: 21),
-          TabBar(
-            controller: _tabs,
-            tabs: const [
-              Tab(text: 'Users'),
-              Tab(text: 'Zones'),
-              Tab(text: 'Shifts'),
-            ],
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(18),
+                  right: Radius.circular(18),
+                ),
+                border: Border.all(
+                  color: Colors.blueAccent.withOpacity(0.5),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blueAccent.withOpacity(0.18),
+                    blurRadius: 12,
+                    spreadRadius: 1,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: TabBar(
+                controller: _tabs,
+                indicator: BoxDecoration(
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(14),
+                    right: Radius.circular(14),
+                  ),
+                  color: Colors.blueAccent.withOpacity(0.13),
+                ),
+                labelColor: Colors.blueAccent,
+                unselectedLabelColor: Colors.black54,
+                tabs: const [
+                  Tab(text: 'Users'),
+                  Tab(text: 'Zones'),
+                  Tab(text: 'Shifts'),
+                ],
+              ),
+            ),
           ),
           Expanded(
             child: TabBarView(
@@ -102,7 +168,7 @@ class _UsersTabState extends State<_UsersTab> {
       onRefresh: _load,
       child: ListView.separated(
         itemCount: rows!.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
+        separatorBuilder: (_, __) => const SizedBox(height: 0),
         itemBuilder: (_, i) {
           final u = rows![i] as Map;
           final id = (u['id'] ?? u['_id']).toString();
@@ -110,27 +176,79 @@ class _UsersTabState extends State<_UsersTab> {
           final name = (u['name'] ?? '').toString();
           final role = (u['role'] ?? 'EMPLOYEE').toString();
           final active = (u['active'] ?? true) as bool;
-          return ListTile(
-            title: Text(name.isEmpty ? email : name),
-            subtitle: Text('$email • $id'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButton<String>(
-                  value: role,
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'EMPLOYEE',
-                      child: Text('EMPLOYEE'),
-                    ),
-                    DropdownMenuItem(value: 'HR', child: Text('HR')),
-                    DropdownMenuItem(value: 'ADMIN', child: Text('ADMIN')),
-                  ],
-                  onChanged: (v) => v == null ? null : _setRole(id, v),
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: active
+                      ? Colors.greenAccent.withOpacity(0.4)
+                      : Colors.redAccent.withOpacity(0.25),
+                  blurRadius: 18,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 6),
                 ),
-                const SizedBox(width: 8),
-                Switch(value: active, onChanged: (v) => _setActive(id, v)),
               ],
+              border: Border.all(
+                color: active ? Colors.greenAccent : Colors.redAccent,
+                width: 1.2,
+              ),
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 8,
+              ),
+              leading: CircleAvatar(
+                backgroundColor: active ? Colors.greenAccent : Colors.redAccent,
+                child: Icon(Icons.person, color: Colors.white),
+              ),
+              title: Text(
+                name.isEmpty ? email : name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  letterSpacing: 0.5,
+                  shadows: [Shadow(color: Colors.blueAccent, blurRadius: 6)],
+                ),
+              ),
+              subtitle: Text(
+                '$email\nRole: $role',
+                style: TextStyle(color: Colors.grey[700], fontSize: 13),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButton<String>(
+                    value: role,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'EMPLOYEE',
+                        child: Text('EMPLOYEE'),
+                      ),
+                      DropdownMenuItem(value: 'HR', child: Text('HR')),
+                      DropdownMenuItem(value: 'ADMIN', child: Text('ADMIN')),
+                    ],
+                    onChanged: (v) => v == null ? null : _setRole(id, v),
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                    elevation: 2,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  const SizedBox(width: 8),
+                  Switch(
+                    value: active,
+                    onChanged: (v) => _setActive(id, v),
+                    activeColor: Colors.greenAccent,
+                    inactiveThumbColor: Colors.redAccent,
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -269,21 +387,60 @@ class _ZonesTabEditableState extends State<_ZonesTabEditable> {
                   final z = rows![i] as Map;
                   final name = (z['name'] ?? 'Zone').toString();
                   final radius = (z['radiusMeters'] ?? '').toString();
-                  return ListTile(
-                    title: Text(name),
-                    subtitle: Text('Radius: $radius m'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => _edit(z),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () => _delete(z),
+                  return Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blueAccent.withOpacity(0.18),
+                          blurRadius: 16,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 6),
                         ),
                       ],
+                      border: Border.all(
+                        color: Colors.blueAccent.withOpacity(0.25),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.location_on,
+                        color: Colors.blueAccent,
+                      ),
+                      title: Text(
+                        name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                          color: Colors.black87,
+                          shadows: [
+                            Shadow(color: Colors.blueAccent, blurRadius: 4),
+                          ],
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Radius: $radius m',
+                        style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _edit(z),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _delete(z),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -513,21 +670,63 @@ class _ShiftsTabEditableState extends State<_ShiftsTabEditable> {
                   final name = (s['name'] ?? 'Shift').toString();
                   final start = (s['start'] ?? '').toString();
                   final end = (s['end'] ?? '').toString();
-                  return ListTile(
-                    title: Text(name),
-                    subtitle: Text('$start – $end'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => _edit(s),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () => _delete(s),
+                  return Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.deepPurpleAccent.withOpacity(0.18),
+                          blurRadius: 16,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 6),
                         ),
                       ],
+                      border: Border.all(
+                        color: Colors.deepPurpleAccent.withOpacity(0.25),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.access_time,
+                        color: Colors.deepPurpleAccent,
+                      ),
+                      title: Text(
+                        name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                          color: Colors.black87,
+                          shadows: [
+                            Shadow(
+                              color: Colors.deepPurpleAccent,
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                      ),
+                      subtitle: Text(
+                        '$start – $end',
+                        style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _edit(s),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _delete(s),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },

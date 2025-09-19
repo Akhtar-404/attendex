@@ -21,6 +21,9 @@ class _EmpDashboardPageState extends State<EmpDashboardPage> {
   String? _zoneId, _shiftId;
   double _zoneRadiusM = 300;
   bool _loading = true;
+  bool _isCheckedIn = false; // Track check-in status
+
+  Map<String, dynamic>? _shift; // Store the assigned shift
 
   @override
   void initState() {
@@ -34,8 +37,6 @@ class _EmpDashboardPageState extends State<EmpDashboardPage> {
       _me = LatLng(pos.latitude, pos.longitude);
       final zones = await _api.listZones();
       final shifts = await _api.listShifts();
-      print('zones: $zones');
-      print('shifts: $shifts');
       // ...inside _init()...
       if (zones.isNotEmpty) {
         final z = zones.first;
@@ -51,8 +52,8 @@ class _EmpDashboardPageState extends State<EmpDashboardPage> {
       }
       if (shifts.isNotEmpty && shifts.first['id'] != 'null') {
         _shiftId = shifts.first['id'];
+        _shift = shifts.first; // Store the whole shift object
       }
-      // ...inside _init()...
       setState(() => _loading = false);
 
       // Center map on your location (_me) with a reasonable zoom (e.g., 14)
@@ -70,6 +71,29 @@ class _EmpDashboardPageState extends State<EmpDashboardPage> {
     }
   }
 
+  // --- Shift time logic ---
+  bool _isWithinShift() {
+    if (_shift == null) return false;
+    final now = DateTime.now();
+    final startParts = (_shift!['start'] as String).split(':');
+    final endParts = (_shift!['end'] as String).split(':');
+    final start = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      int.parse(startParts[0]),
+      int.parse(startParts[1]),
+    );
+    final end = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      int.parse(endParts[0]),
+      int.parse(endParts[1]),
+    );
+    return now.isAfter(start) && now.isBefore(end);
+  }
+
   Future<void> _doCheckIn() async {
     if (_me == null || _zoneId == null || _shiftId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -77,7 +101,18 @@ class _EmpDashboardPageState extends State<EmpDashboardPage> {
       );
       return;
     }
-    // 👇 ADD THIS LINE (use debugPrint to avoid truncation)
+    // Only allow check-in during shift time
+    if (!_isWithinShift()) {
+      final s = _shift;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Check-in only allowed during shift: ${s?['start']} - ${s?['end']}',
+          ),
+        ),
+      );
+      return;
+    }
     debugPrint(
       'check-in payload => '
       '{"zoneId":"$_zoneId","shiftId":"$_shiftId","lat":${_me!.latitude},"lng":${_me!.longitude}}',
@@ -91,6 +126,9 @@ class _EmpDashboardPageState extends State<EmpDashboardPage> {
         lng: _me!.longitude,
       );
       if (!mounted) return;
+      setState(() {
+        _isCheckedIn = true;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -107,15 +145,36 @@ class _EmpDashboardPageState extends State<EmpDashboardPage> {
   }
 
   Future<void> _doCheckOut() async {
+    if (!_isCheckedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must check in before checking out!')),
+      );
+      return;
+    }
     if (_me == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Location not ready')));
       return;
     }
+    // Only allow check-out during shift time
+    if (!_isWithinShift()) {
+      final s = _shift;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Check-out only allowed during shift: ${s?['start']} - ${s?['end']}',
+          ),
+        ),
+      );
+      return;
+    }
     try {
       final r = await _api.checkOut(lat: _me!.latitude, lng: _me!.longitude);
       if (!mounted) return;
+      setState(() {
+        _isCheckedIn = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Checked out at ${r['checkOutTime'] ?? ''}')),
       );
@@ -206,46 +265,188 @@ class _EmpDashboardPageState extends State<EmpDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'ATTENDEX',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: 2,
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 20),
+          // ATTENDEX title at top center
+          Text(
+            'ATTENDEX',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2,
             ),
-            const SizedBox(height: 8),
-            Expanded(
+          ),
+          const SizedBox(height: 40), // <-- space between title and map
+          // Map box (large square, centered)
+          AspectRatio(
+            aspectRatio: 1,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blueAccent.withOpacity(0.10),
+                    blurRadius: 18,
+                    spreadRadius: 2,
+                  ),
+                ],
+                border: Border.all(
+                  color: Colors.blueAccent.withOpacity(0.13),
+                  width: 2,
+                ),
+              ),
+              padding: const EdgeInsets.all(9),
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _roundedGlowingMap(),
             ),
-            const SizedBox(height: 12),
-            Row(
+          ),
+          const SizedBox(height: 61),
+
+          // Shift time box with horizontal padding
+          if (_shift != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 0,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent.withOpacity(
+                    0.06,
+                  ), // subtle blue background
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: Colors.blueAccent, // outlined border
+                    width: 1.8,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blueAccent.withOpacity(0.18),
+                      blurRadius: 14,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Shift Time',
+                      style: TextStyle(
+                        color: Color(0xFF0D47A1), // dark blue
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${_shift!['start']} - ${_shift!['end']}',
+                      style: const TextStyle(
+                        color: Color(0xFF0D47A1), // dark blue
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        letterSpacing: 1.1,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 33),
+
+          // Buttons row (wide, spaced, rounded)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
               children: [
                 Expanded(
-                  child: FilledButton(
-                    onPressed: _loading ? null : _doCheckIn,
-                    child: const Text('Check-in'),
+                  child: Container(
+                    height: 41,
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blueAccent.withOpacity(0.13),
+                          blurRadius: 12,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: EdgeInsets.zero,
+                        elevation: 0,
+                      ),
+                      onPressed: _loading ? null : _doCheckIn,
+                      child: const Text(
+                        'Check-in',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          letterSpacing: 1.1,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: _loading ? null : _doCheckOut,
-                    child: const Text('Check-out'),
+                  child: Container(
+                    height: 41,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.blueAccent, width: 1.2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blueAccent.withOpacity(0.10),
+                          blurRadius: 10,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide.none,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                      onPressed: _loading ? null : _doCheckOut,
+                      child: const Text(
+                        'Check-out',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          letterSpacing: 1.1,
+                          color: Colors.blueAccent,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

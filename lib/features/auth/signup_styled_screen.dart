@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/validators.dart';
 import 'auth_service.dart';
 
@@ -31,6 +32,9 @@ class _S extends State<SignupStyledScreen> {
     setState(() => _busy = true);
     try {
       await _svc.signup(_name.text.trim(), _email.text.trim(), _pass.text);
+      // Save name locally
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_name', _name.text.trim());
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Account created. Please sign in.')),

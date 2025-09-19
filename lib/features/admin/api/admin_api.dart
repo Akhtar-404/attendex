@@ -124,7 +124,7 @@ class AdminApi {
   // ------- USERS (unchanged) -------
   Future<List<dynamic>> listUsers() async {
     try {
-      final r = await dio.get('/me');
+      final r = await dio.get('/users');
       return (r.data as List).cast<dynamic>();
     } catch (e) {
       throw Exception(prettyDioError(e));
@@ -133,17 +133,16 @@ class AdminApi {
 
   Future<Map<String, dynamic>> setUserRole(String id, String role) async {
     try {
-      final r = await dio.patch('me/$id/role', data: {'role': role});
+      final r = await dio.patch('/users/$id/role', data: {'role': role});
       return Map<String, dynamic>.from(r.data as Map);
     } catch (e) {
       throw Exception(prettyDioError(e));
     }
   }
 
-  Future<Map<String, dynamic>> setUserActive(String id, bool active) async {
+  Future<void> setUserActive(String userId, bool active) async {
     try {
-      final r = await dio.patch('/me/$id/active', data: {'active': active});
-      return Map<String, dynamic>.from(r.data as Map);
+      await dio.patch('/users/$userId/active', data: {'active': active});
     } catch (e) {
       throw Exception(prettyDioError(e));
     }

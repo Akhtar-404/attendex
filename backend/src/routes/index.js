@@ -5,7 +5,8 @@ import me from './me.js';
 import shifts from './shifts.routes.js';
 import attendance from './attendance.routes.js';
 import leaves from './leaves.routes.js';
-import { requireAuth } from '../middleware/auth.js';
+import users from './users.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 const r = Router();
 r.get('/health', (_req, res) => res.json({ ok: true }));
 
@@ -15,5 +16,6 @@ r.use('/shifts', requireAuth,shifts);
 r.use('/me',requireAuth, me); 
 r.use('/attendance', requireAuth,attendance);
 r.use('/leaves', leaves);
+r.use('/users', requireAuth, requireRole('ADMIN', 'HR'), users);
 
 export default r;
